@@ -1,0 +1,45 @@
+ca:
+   root:
+      dn: CN=root.ca.{{ domain_name }},OU=CA,O={{ domain_name }}\, Inc.,DC={{ domain_name }}
+      keysize: 2048
+      validityDays: 730
+      pkPassword: none
+      file: root-ca.pem
+
+### Default values and global settings
+defaults:
+      validityDays: 730
+      pkPassword: none
+      # Set this to true in order to generate config and certificates for
+      # the HTTP interface of nodes
+      httpsEnabled: true
+      reuseTransportCertificatesForHttp: false
+      verifyHostnames: false
+      resolveHostnames: false
+
+
+###
+### Nodes
+###
+#
+# Specify the nodes of your ES cluster here
+#
+nodes:
+  - name: "{{ inventory_hostname }}"
+    dn: CN={{ inventory_hostname }}.{{ domain_name }},OU=Ops,O={{ domain_name }}\, Inc.,DC={{ domain_name }}
+    dns: {{ inventory_hostname }}.{{ domain_name }}
+    ip: 10.81.1.223
+
+###
+### Clients
+###
+#
+# Specify the clients that shall access your ES cluster with certificate authentication here
+#
+# At least one client must be an admin user (i.e., a super-user). Admin users can
+# be specified with the attribute admin: true
+#
+clients:
+  - name: admin
+    dn: CN=admin.{{ domain_name }},OU=Ops,O={{ domain_name }}\, Inc.,DC={{ domain_name }}
+    admin: true

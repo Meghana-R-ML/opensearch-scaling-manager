@@ -1,0 +1,57 @@
+---
+# tasks file for scale_down
+    - name: Change the directory
+      shell: |
+        pwd
+      register: pth
+      delegate_to: localhost
+    
+    - name: Update and install the packages in Ubuntu
+      become: true
+      become_user: root
+      shell: |
+        sudo apt-get -y update
+        sudo apt-get install -y python3-pip
+        pip3 install requests
+      delegate_to: localhost  
+      when: ansible_os_family == "Debian"
+      
+    - name: Update and install the packages in Centos
+      become: true
+      become_user: root
+      shell: |
+        yum install -y python3-pip
+        pip3 install requests
+      delegate_to: localhost   
+      when: ansible_os_family == "RedHat"
+   
+    - name: Exclude the node from allocation
+      become: true
+      become_user: root
+      shell: "curl -XPUT {{ hostvars[item].ansible_private_host }}:9200/_cluster/settings -u {{ admin_user }}:{{ admin_password }} -H 'Content-Type: application/json' -d '{
+  \"transient\" :{
+      \"cluster.routing.allocation.exclude._ip\" : \"{{ hostvars[item].ansible_private_host }}\"
+   }
+}'"
+      with_items: "{{ groups['remove-node'] }}" 
+
+    - name: Execute the script to check the docs count
+      become: yes
+      become_user: root
+      command: "python3 {{ pth.stdout }}/docs.py {{ admin_user }} {{ admin_password }} {{ item }} {{ hostvars[item].ansible_private_host }}"
+      delegate_to: localhost
+      with_items: "{{ groups['remove-node'] }}"
+    
+    - name: Wait for 30 seconds to stabilise the cluster
+      wait_for:
+        timeout: 30
+            
+    - name: stop elasticsearch
+      become: true
+      service:
+        name: 'opensearch'
+        state: stopped
+
+    - name: Stop the instance
+      become: true
+      shell: "shutdown -h"    

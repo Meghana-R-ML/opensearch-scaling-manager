@@ -1,0 +1,62 @@
+---
+- hosts: new-node
+  name: Scale-up role-based playbook
+  become: yes
+
+  roles:
+    - scale_up
+
+- hosts: all
+
+  tasks:
+
+  - name: Update Hosts | Add the new node into all unicast files
+    lineinfile:
+      path: "{{os_conf_dir}}/unicast_hosts.txt"
+      line: "{{ hostvars[item]['ansible_private_host'] }}"
+      state: present
+      backup: yes
+    with_items: "{{ groups['new-node'] }}"
+    become: yes
+
+
+  - name: Update Hosts | Create a group for ansible inventory
+    lineinfile:
+      path: /etc/ansible/hosts
+      line: "[opensearch-nodes]"
+      state: present
+      backup: yes
+      create: yes
+    become: yes
+
+  - name: Update Hosts | Add hosts to ansible inventory
+    become_user: root
+    become: yes
+    blockinfile:
+      path: /etc/ansible/hosts
+      insertafter: "[opensearch-nodes]"
+      block: |-
+        {% for item in groups['all'] %}
+        {{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}
+        {% endfor %}
+      state: present
+      create: yes
+      backup: yes
+      marker: "# Ansible inventory hosts {mark}"
+
+
+  - name: Populate hosts | populate inventory into hosts file
+    become_user: root
+    become: yes
+    blockinfile:
+      dest: /etc/hosts
+      block: |-
+        {% for item in groups['all'] %}
+        {{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}
+        {% endfor %}
+      state: present
+      create: yes
+      backup: yes
+      marker: "# Ansible inventory hosts {mark}"
+
+

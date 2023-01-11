@@ -1,0 +1,62 @@
+---
+  - name: Wait 300 seconds for port 22 to become open and contain "OpenSSH"
+    wait_for:
+      port: 22
+      host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+      search_regex: OpenSSH
+      delay: 30
+      timeout: 600
+      sleep: 30
+    connection: local
+
+  - name: install python on ubuntu
+    raw: test -e /usr/bin/python || (sudo apt -y update && sudo apt install -y python)
+    register: task_result
+    until: task_result.rc == 0
+    retries: 5
+    delay: 30
+    
+  
+  # Disabling for Amazon Linux 2 as selinux is disabled by default.
+  - name: Disable the selinux
+    selinux:
+      state: disabled
+    when: (ansible_distribution != "Ubuntu") and (ansible_distribution != "Amazon")
+
+  - name: Install ansible
+    import_tasks: install_ansible.yml
+
+    #  - name: check current golang version
+    #    command: bash -c "/usr/local/go/bin/go version|sed -e 's/go version go//g'|cut -d' ' -f1"
+    #    ignore_errors: yes
+    #    register: go_version
+    #    changed_when: false
+    #    become: yes
+
+    #  - debug: msg="go_version={{go_version.stdout}}"
+    #  - debug: msg="new_go_version={{new_go_version}}"
+    #
+    #  - name: Install Golang
+    #    import_tasks: install_golang.yml
+    #    when: go_version.stdout == ""
+  
+  - name: Tune the system settings
+    import_tasks: tune.yml
+  
+  - name: include opensearch installation
+    include: opensearch.yml
+  
+  - name: include security plugin for opensearch
+    include: security.yml
+  
+  
+  - name: Get all the installed ES plugins
+    command: "{{ os_plugin_bin_path }} list"
+    register: list_plugins
+    become: yes
+  
+  - name: Show all the installed ES plugins
+    debug:
+      msg: "{{ list_plugins.stdout }}"
+    become: yes
+ 

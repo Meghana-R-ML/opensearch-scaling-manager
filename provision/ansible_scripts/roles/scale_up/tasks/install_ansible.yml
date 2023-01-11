@@ -1,0 +1,11 @@
+---
+  
+  - name: Install ansible on new host
+    become_user: root
+    become: yes
+    raw: (sudo apt -y update && sudo apt -y install software-properties-common && sudo add-apt-repository --yes --update ppa:ansible/ansible && sudo apt -y install ansible)
+    register: task_result
+    until: task_result.rc == 0
+    retries: 5
+    delay: 30
+

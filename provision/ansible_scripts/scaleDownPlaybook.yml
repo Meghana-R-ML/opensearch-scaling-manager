@@ -1,0 +1,33 @@
+---
+
+- hosts: all
+
+  tasks:
+
+  - name: Remove the node from all unicast files
+    lineinfile:
+      path: "{{os_conf_dir}}/unicast_hosts.txt"
+      regexp: '{{ hostvars[item].ansible_private_host }}'
+      state: absent
+      backup: yes
+    with_items: "{{ groups['remove-node'] }}"
+    become: yes
+
+  - name: Update Hosts | Remove hosts from ansible inventory
+    become_user: root
+    become: yes
+    lineinfile:
+      path: /etc/ansible/hosts
+      regexp: "{{ hostvars[item]['ansible_private_host'] }}"
+      state: absent
+      backup: yes
+    with_items: "{{ groups['remove-node'] }}"
+
+
+- hosts: remove-node
+  name: Scale-down role-based playbook
+  become: yes
+
+  roles:
+    - scale_down
+

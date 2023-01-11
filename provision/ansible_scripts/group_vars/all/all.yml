@@ -1,0 +1,40 @@
+## Common opensearch configuration parameters ##
+#
+new_go_version: "1.19.1"
+
+# os_cluster_name: "{{ cluster_name }}"
+os_cluster_name: "opensearch-es-cluster"
+
+# opensearch download
+os_download_url: https://artifacts.opensearch.org/releases/bundle/opensearch
+
+# opensearch version
+os_version: "2.3.0"
+
+# Configure hostnames for opensearch nodes
+# It is required to configure SSL
+# Example es1.example.com, es2.example.com
+domain_name: snappyflow.com
+
+# Cluster type whether its single node or multi-node
+cluster_type: multi-node
+
+# Xmx represents the maximum size of total heap space
+xms_value: "{{ RAMGB | int }}"
+xmx_value: "{{ RAMGB | int }}"
+
+# opensearch user info
+os_user: ubuntu
+admin_user: admin
+admin_password: admin
+roles_es: data,master,ingest
+
+
+os_home: /usr/share/opensearch
+os_conf_dir: /usr/share/opensearch/config
+os_plugin_bin_path: /usr/share/opensearch/bin/opensearch-plugin
+os_sec_plugin_conf_path: /usr/share/opensearch/config/opensearch-security
+os_sec_plugin_tools_path: /usr/share/opensearch/plugins/opensearch-security/tools
+os_api_port: 9200
+
+systemctl_path: /etc/systemd/system

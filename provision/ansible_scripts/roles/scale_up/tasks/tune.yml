@@ -1,0 +1,14 @@
+---
+- name: Set vm.max_map_count in sysctl.conf
+  sysctl:
+    name: vm.max_map_count
+    value: 262144
+    state: present
+  become: yes
+
+- name: Set open files limit in sysctl.conf
+  sysctl:
+    name: fs.file-max
+    value: 65536
+    state: present
+  become: yes  

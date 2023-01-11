@@ -1,0 +1,14 @@
+cluster.name: "{{ os_cluster_name }}"
+
+node.name: "{{ inventory_hostname }}"
+
+network.host: 0.0.0.0
+
+http.port: 9200
+bootstrap.memory_lock: true
+discovery.seed_providers: file
+
+
+node.roles: "{{ roles_es }}"
+script.painless.regex.enabled: true
+action.auto_create_index: ".security,.monitoring*,.watches,.triggered_watches,.watcher-history*,.ml*"
