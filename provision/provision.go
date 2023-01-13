@@ -133,7 +133,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
-	new_node := "10.81.1.225"
+	new_node := "" // Will be replaced by IP after vm is scaled up
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info.Println("Starting scaleUp process")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
