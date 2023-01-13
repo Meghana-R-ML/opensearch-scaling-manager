@@ -46,6 +46,8 @@ func init() {
 	var err error
 	client, err = opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
+		Username: "", // Specify username
+		Password: "", // Update later with encrypted password
 	})
 	if err != nil {
 		log.Fatal.Println(err)

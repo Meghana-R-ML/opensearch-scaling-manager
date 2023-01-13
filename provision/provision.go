@@ -11,6 +11,9 @@ import (
 	"scaling_manager/config"
 	"strings"
 	"time"
+	"os"
+	"context"
+	"bufio"
 
 	"scaling_manager/logger"
 )
@@ -130,6 +133,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
+	new_node := "10.81.1.225"
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info.Println("Starting scaleUp process")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
@@ -153,6 +157,23 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
 		log.Info.Println("Check if the vm creation is complete and wait till done")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		hostsFileName := "provision/ansible_scripts/hosts"
+		username := "ubuntu"
+		f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+		    log.Fatal.Println(err)
+		}
+		defer f.Close()
+		clusterDetails := cluster.GetCluster(context.Background())
+		dataWriter := bufio.NewWriter(f)
+		dataWriter.WriteString("[current-nodes]\n")
+		for _, node := range clusterDetails.NodeList {
+			_, _ = dataWriter.WriteString(node.NodeName + " "+ "ansible_user="+ username + " roles=master,data,ingest ansible_private_host="+node.HostIp+"\n")
+		}
+		dataWriter.WriteString("[new-node]\n")
+		dataWriter.WriteString(new_node+ " "+ "ansible_user="+ username + " roles=master,data,ingest ansible_private_host="+new_node+"\n")
+		dataWriter.Flush()
+		CallScaleUp(username, hostsFileName)
 		log.Info.Println("Adding the spinned nodes into the list of vms")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Configure ES")
@@ -223,6 +244,29 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		hostsFileName := "provision/ansible_scripts/hosts"
+                username := "ubuntu"
+		var remove_node string
+                f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+                if err != nil {
+                    log.Fatal.Println(err)
+                }
+                defer f.Close()
+                clusterDetails := cluster.GetCluster(context.Background())
+                dataWriter := bufio.NewWriter(f)
+                dataWriter.WriteString("[current-nodes]\n")
+                for _, node := range clusterDetails.NodeList {
+			if !(node.IsMaster) && remove_node == ""{
+				remove_node = node.HostIp
+			}
+                        _, _ = dataWriter.WriteString(node.NodeName + " "+ "ansible_user="+ username + " roles=master,data,ingest ansible_private_host="+node.HostIp+"\n")
+                }
+                dataWriter.WriteString("[remove-node]\n")
+                dataWriter.WriteString(remove_node+ " "+ "ansible_user="+ username + " roles=master,data,ingest ansible_private_host="+remove_node+"\n")
+                dataWriter.Flush()
+		log.Info.Println("Removing node ***********************************:", remove_node )
+                CallScaleDown(username, hostsFileName)
+
 		log.Info.Println("Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
@@ -306,7 +350,7 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	req, err := http.NewRequest("POST", urlLink, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	resp, err := client.Do(req)
 
