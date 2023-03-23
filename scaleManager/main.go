@@ -29,6 +29,9 @@ var firstExecution bool
 
 var seed = time.Now().Unix()
 
+// Interval in which FetchMetrics will insert the data into Opensearch
+var fetchMetricsPollingInterval = 300
+
 // Input:
 //
 // Description:
@@ -55,7 +58,7 @@ func Initialize() {
 	userCfg := configStruct.UserConfig
 
 	if !userCfg.MonitorWithSimulator {
-		go fetch.FetchMetrics(userCfg.FetchPollingInterval, userCfg.PurgeAfter)
+		go fetch.FetchMetrics(fetchMetricsPollingInterval, userCfg.PurgeAfter)
 	}
 
 }
@@ -118,7 +121,7 @@ func Run() {
 			if len(eventTasks.Tasks) > 0 {
 				recommendation.CreateCronJob(eventTasks, clusterCfg, userCfg, t)
 			}
-			recommendationList := recommendation.EvaluateTask(userCfg.RecommendationPollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, metricTasks)
+			recommendationList := recommendation.EvaluateTask(fetchMetricsPollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, metricTasks)
 			provision.GetRecommendation(recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)

@@ -67,7 +67,6 @@ type UserConfig struct {
 	MonitorWithSimulator          bool `yaml:"monitor_with_simulator"`
 	PurgeAfter                    int  `yaml:"purge_old_docs_after_hours" validate:"required,min=1"`
 	RecommendationPollingInterval int  `yaml:"recommendation_polling_interval_in_secs" validate:"required,min=60"`
-	FetchPollingInterval          int  `yaml:"fetchmetrics_polling_interval_in_secs" validate:"required,min=60"`
 	IsAccelerated                 bool `yaml:"is_accelerated"`
 }
 
